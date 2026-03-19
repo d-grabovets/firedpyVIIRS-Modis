@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>firedpyVIIRS — Burned Area Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; }
+
+        #map { width: 100%; height: calc(100vh - 56px); }
+
+        .header {
+            height: 56px; background: #161b22; border-bottom: 1px solid #30363d;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header h1 span { color: #f85149; }
+
+        .controls {
+            display: flex; gap: 12px; align-items: center;
+        }
+        .controls select, .controls input {
+            background: #21262d; color: #e6edf3; border: 1px solid #30363d;
+            border-radius: 6px; padding: 6px 10px; font-size: 13px;
+        }
+        .controls label { font-size: 13px; color: #8b949e; }
+
+        .info-panel {
+            position: absolute; top: 70px; right: 14px; z-index: 1000;
+            background: rgba(22, 27, 34, 0.95); border: 1px solid #30363d;
+            border-radius: 8px; padding: 14px; min-width: 220px;
+            font-size: 13px; line-height: 1.6;
+        }
+        .info-panel h3 { font-size: 14px; margin-bottom: 8px; color: #58a6ff; }
+        .info-panel .stat { display: flex; justify-content: space-between; }
+        .info-panel .stat-val { font-weight: 600; color: #f0f6fc; }
+
+        .legend {
+            position: absolute; bottom: 30px; right: 14px; z-index: 1000;
+            background: rgba(22, 27, 34, 0.95); border: 1px solid #30363d;
+            border-radius: 8px; padding: 12px; font-size: 12px;
+        }
+        .legend h4 { margin-bottom: 6px; color: #8b949e; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+        .legend-color { width: 14px; height: 14px; border-radius: 3px; }
+
+        .popup-table { font-size: 12px; border-collapse: collapse; }
+        .popup-table td { padding: 2px 8px 2px 0; }
+        .popup-table td:first-child { color: #8b949e; }
+
+        .leaflet-popup-content-wrapper {
+            background: #161b22 !important; color: #e6edf3 !important;
+            border: 1px solid #30363d !important; border-radius: 8px !important;
+        }
+        .leaflet-popup-tip { background: #161b22 !important; }
+
+        .loading {
+            position: absolute; top: 50%; left: 50%; z-index: 2000;
+            transform: translate(-50%, -50%);
+            background: rgba(22, 27, 34, 0.9); padding: 20px 30px;
+            border-radius: 8px; border: 1px solid #30363d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span>firedpyVIIRS</span> Burned Area Dashboard</h1>
+        <div class="controls">
+            <label>Year:</label>
+            <select id="yearSelect">
+                <option value="2024" selected>2024</option>
+                <option value="2023">2023</option>
+            </select>
+            <label>Sensor:</label>
+            <select id="filterSensor">
+                <option value="all">All</option>
+                <option value="VIIRS" selected>VIIRS (VNP64A1)</option>
+                <option value="MODIS">MODIS (MCD64A1)</option>
+            </select>
+            <label>Confidence:</label>
+            <select id="confSelect">
+                <option value="all" selected>All</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <label>Fire type:</label>
+            <select id="typeSelect">
+                <option value="all" selected>All</option>
+                <option value="wildfire">Wildfire</option>
+                <option value="agricultural">Agricultural</option>
+                <option value="grassfire">Grassfire</option>
+                <option value="peatfire">Peatfire</option>
+            </select>
+            <label>Month:</label>
+            <select id="monthSelect">
+                <option value="0" selected>All</option>
+                <option value="1">Jan</option><option value="2">Feb</option>
+                <option value="3">Mar</option><option value="4">Apr</option>
+                <option value="5">May</option><option value="6">Jun</option>
+                <option value="7">Jul</option><option value="8">Aug</option>
+                <option value="9">Sep</option><option value="10">Oct</option>
+                <option value="11">Nov</option><option value="12">Dec</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="map"></div>
+    <div id="loading" class="loading">Loading data...</div>
+
+    <div class="info-panel" id="infoPanel">
+        <h3>Summary</h3>
+        <div class="stat"><span>Sensor:</span><span class="stat-val" id="statSensor">-</span></div>
+        <div class="stat"><span>Events:</span><span class="stat-val" id="statEvents">-</span></div>
+        <div class="stat"><span>Area:</span><span class="stat-val" id="statArea">-</span></div>
+        <div class="stat"><span>High conf:</span><span class="stat-val" id="statHigh">-</span></div>
+        <div class="stat"><span>FIRMS confirmed:</span><span class="stat-val" id="statFirms">-</span></div>
+        <div class="stat"><span>Agricultural:</span><span class="stat-val" id="statAgri">-</span></div>
+        <div class="stat"><span>Wildfire:</span><span class="stat-val" id="statWild">-</span></div>
+    </div>
+
+    <div class="legend">
+        <h4>Confidence</h4>
+        <div class="legend-item"><div class="legend-color" style="background:#f85149"></div> High</div>
+        <div class="legend-item"><div class="legend-color" style="background:#d29922"></div> Medium</div>
+        <div class="legend-item"><div class="legend-color" style="background:#8b949e"></div> Low</div>
+        <h4 style="margin-top:8px">Fire type</h4>
+        <div class="legend-item"><div class="legend-color" style="background:#da3633; border-radius:50%"></div> Wildfire</div>
+        <div class="legend-item"><div class="legend-color" style="background:#e3b341; border-radius:50%"></div> Agricultural</div>
+        <div class="legend-item"><div class="legend-color" style="background:#3fb950; border-radius:50%"></div> Grassfire</div>
+        <div class="legend-item"><div class="legend-color" style="background:#a371f7; border-radius:50%"></div> Peatfire</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ── Map setup ──
+        const map = L.map('map', {
+            center: [48.5, 31.5],
+            zoom: 6,
+            zoomControl: true,
+        });
+
+        // Dark basemap
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Default view: world
+        // Override center/zoom for your region of interest
+
+        // ── Colors ──
+        const CONF_COLORS = { high: '#f85149', medium: '#d29922', low: '#8b949e' };
+        const TYPE_COLORS = { wildfire: '#da3633', agricultural: '#e3b341', grassfire: '#3fb950', peatfire: '#a371f7', urban_industrial: '#f0883e', unknown: '#8b949e' };
+
+        // ── State ──
+        let geojsonData = null;
+        let eventsLayer = null;
+
+        // ── Data source ──
+        // Try API first, fall back to local GeoJSON file
+        const API_BASE = window.location.port === '8000' ? '' : 'http://localhost:8000';
+
+        async function loadData(year) {
+            document.getElementById('loading').style.display = 'block';
+
+            const sensor = document.getElementById('filterSensor').value;
+            const prefix = sensor === 'MODIS' ? 'modis' : (sensor === 'VIIRS' ? 'viirs' : 'viirs');
+
+            // Try local GeoJSON via API static mount (has all enrichment fields)
+            const sources = [
+                `${API_BASE}/output/${prefix}_${year}_burned_events.geojson`,
+                `${API_BASE}/burned/events?year=${year}${sensor !== 'all' ? `&sensor=${sensor}` : ''}`,
+                `../output/${prefix}_${year}_burned_events.geojson`,
+            ];
+
+            for (const url of sources) {
+                try {
+                    const resp = await fetch(url);
+                    if (resp.ok) {
+                        geojsonData = await resp.json();
+                        console.log(`Loaded from: ${url} (${geojsonData.features?.length || 0} features)`);
+                        applyFilters();
+                        return;
+                    }
+                } catch (e) {
+                    console.log(`Failed: ${url}`);
+                }
+            }
+
+            document.getElementById('loading').textContent = 'Error: no data. Start API: uvicorn scripts.api_server:app --port 8000';
+        }
+
+        function getStyle(feature) {
+            const conf = feature.properties.confidence || 'low';
+            const ft = feature.properties.fire_type || 'unknown';
+            const firmsConfirmed = feature.properties.firms_confirmed;
+
+            return {
+                fillColor: CONF_COLORS[conf] || CONF_COLORS.low,
+                weight: firmsConfirmed ? 2 : 1,
+                opacity: 0.8,
+                color: firmsConfirmed ? '#58a6ff' : (TYPE_COLORS[ft] || '#8b949e'),
+                fillOpacity: 0.5,
+            };
+        }
+
+        function formatPopup(props) {
+            const rows = [
+                ['Date', `${props.ig_date || '?'} - ${props.last_date || '?'}`],
+                ['Area', `${(props.area_ha || 0).toLocaleString()} ha`],
+                ['Confidence', `${props.confidence || '?'} (${(props.confidence_score || 0).toFixed(2)})`],
+                ['Fire type', props.fire_type || '-'],
+                ['Land cover', props.land_cover_type || '-'],
+                ['FIRMS', props.firms_confirmed ? `Confirmed (${props.firms_count} hotspots, max FRP: ${props.firms_max_frp})` : 'Not confirmed'],
+                ['Seasonal', props.seasonal_match ? 'In season' : 'Out of season'],
+                ['Month', props.month || '-'],
+                ['Patches merged', props.patch_count || 1],
+            ];
+
+            let html = '<table class="popup-table">';
+            for (const [k, v] of rows) {
+                html += `<tr><td>${k}</td><td><strong>${v}</strong></td></tr>`;
+            }
+            html += '</table>';
+            return html;
+        }
+
+        function applyFilters() {
+            if (!geojsonData) return;
+
+            const confFilter = document.getElementById('confSelect').value;
+            const typeFilter = document.getElementById('typeSelect').value;
+            const monthFilter = parseInt(document.getElementById('monthSelect').value);
+
+            const filtered = {
+                type: 'FeatureCollection',
+                features: geojsonData.features.filter(f => {
+                    const p = f.properties;
+                    if (confFilter !== 'all' && p.confidence !== confFilter) return false;
+                    if (typeFilter !== 'all' && p.fire_type !== typeFilter) return false;
+                    if (monthFilter > 0 && p.month !== monthFilter) return false;
+                    return true;
+                })
+            };
+
+            if (eventsLayer) map.removeLayer(eventsLayer);
+
+            eventsLayer = L.geoJSON(filtered, {
+                style: getStyle,
+                onEachFeature: (feature, layer) => {
+                    layer.bindPopup(formatPopup(feature.properties), { maxWidth: 350 });
+                },
+            }).addTo(map);
+
+            updateStats(filtered.features);
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function updateStats(features) {
+            const n = features.length;
+            const totalArea = features.reduce((s, f) => s + (f.properties.area_ha || 0), 0);
+            const nHigh = features.filter(f => f.properties.confidence === 'high').length;
+            const nFirms = features.filter(f => f.properties.firms_confirmed).length;
+            const nAgri = features.filter(f => f.properties.fire_type === 'agricultural').length;
+            const nWild = features.filter(f => f.properties.fire_type === 'wildfire').length;
+
+            const sensor = document.getElementById('filterSensor').value;
+            const sensorLabel = sensor === 'MODIS' ? 'MODIS' : (sensor === 'VIIRS' ? 'VIIRS' : 'All');
+
+            document.getElementById('statSensor').textContent = sensorLabel;
+            document.getElementById('statEvents').textContent = n.toLocaleString();
+            document.getElementById('statArea').textContent = `${(totalArea / 1000).toFixed(0)}k ha`;
+            document.getElementById('statHigh').textContent = nHigh.toLocaleString();
+            document.getElementById('statFirms').textContent = nFirms.toLocaleString();
+            document.getElementById('statAgri').textContent = nAgri.toLocaleString();
+            document.getElementById('statWild').textContent = nWild.toLocaleString();
+        }
+
+        // ── Event listeners ──
+        document.getElementById('yearSelect').addEventListener('change', e => loadData(e.target.value));
+        document.getElementById('filterSensor').addEventListener('change', () => loadData(document.getElementById('yearSelect').value));
+        document.getElementById('confSelect').addEventListener('change', applyFilters);
+        document.getElementById('typeSelect').addEventListener('change', applyFilters);
+        document.getElementById('monthSelect').addEventListener('change', applyFilters);
+
+        // ── Init ──
+        loadData(2024);
+    </script>
+</body>
+</html>

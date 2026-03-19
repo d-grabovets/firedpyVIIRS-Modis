@@ -261,6 +261,7 @@ class EventGrid(Base):
             project_directory,
             spatial_param=5,
             temporal_param=11,
+            composite_days=30,
             start_year=2020,
             end_year=2025,
             country=None,
@@ -286,6 +287,10 @@ class EventGrid(Base):
         temporal_param : int
             The number of days to search for neighboring burn detections.
             Defaults to 11.
+        composite_days : int
+            The composite period in days for satellite burn data. Both MCD64A1
+            (MODIS) and VNP64A1 (VIIRS) use monthly composites (30 days).
+            Defaults to 30.
         start_year : int
             The first year of fire events. Defaults to 2000.
         end_year : int
@@ -308,6 +313,7 @@ class EventGrid(Base):
         super().__init__(project_directory)
         self.spatial_param = spatial_param
         self.temporal_param = temporal_param
+        self.composite_days = composite_days
         self.shape_file = shape_file
         self.current_event_id = 0
         self.years = list(range(start_year, end_year + 1))
@@ -498,7 +504,10 @@ class EventGrid(Base):
         perimeters = RandomAccessSet()
         identified_points = {}
 
-        time_index_buffer = max(1, self.temporal_param // 30)
+        # Monthly composite period — both MCD64A1 and VNP64A1 are monthly products
+        # Use 30 as default; for sub-monthly products, override via composite_days param
+        composite_days = getattr(self, 'composite_days', 30)
+        time_index_buffer = max(1, self.temporal_param // composite_days)
 
         for pair in available_pairs:
             y, x = pair

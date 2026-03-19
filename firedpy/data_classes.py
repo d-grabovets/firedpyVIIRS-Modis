@@ -124,7 +124,7 @@ class Base(MODISEarthAccess):
             r"(?P<prod_hourminute>\d{4})"
             r"(?P<prod_second>\d{2})\.hdf$"
         )
-        self._file_regex = self._file_regex = r"MCD64A1" + post_regex
+        self._file_regex = self._product_config.short_name + post_regex
 
         # Initialize output directory folders and files
         self._initialize_save_dirs()
@@ -356,8 +356,11 @@ class LPDAAC(Base):
     def get_all_available_tiles():
         with paramiko.SSHClient() as ssh_client:
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh_client.connect(hostname="fuoco.geog.umd.edu",
-                               username="fire", password="burnt")
+            ssh_client.connect(
+                hostname=os.environ.get("FIREDPY_SSH_HOST", "fuoco.geog.umd.edu"),
+                username=os.environ.get("FIREDPY_SSH_USER", "fire"),
+                password=os.environ.get("FIREDPY_SSH_PASS", ""),
+            )
             logger.info("Connected to 'fuoco.geog.umd.edu' ...")
             # Open the connection to the SFTP
             with ssh_client.open_sftp() as sftp_client:
@@ -416,7 +419,7 @@ class LPDAAC(Base):
 class BurnData(LPDAAC):
     """Methods for handling MODIS Burn data."""
 
-    def __init__(self, project_directory, n_cores=0):
+    def __init__(self, project_directory, n_cores=0, product="MCD64A1"):
         """Initialize BurnData object.
 
         Parameters
@@ -426,18 +429,24 @@ class BurnData(LPDAAC):
         n_cores : int
             Number of CPU cores to use in multiprocessing. A value of 0 or
             None will use all available cores. Defaults to 0.
+        product : str
+            Product short name ("MCD64A1" or "VNP64A1"). Defaults to "MCD64A1".
         """
         # Set these here, the LPDAAC will prompt if these aren't set yet
         super().__init__(project_directory=project_directory, n_cores=n_cores)
 
-        self._lp_daac_url = "https://e4ftl01.cr.usgs.gov/MOTA/MCD64A1.061/"
+        # Sensor-agnostic product config
+        from firedpy.product_config import get_product
+        self._product_config = get_product(product)
+
+        self._lp_daac_url = f"https://e4ftl01.cr.usgs.gov/{self._product_config.lp_daac_catalog}/"
         self._base_sftp_folder = os.path.join(
             "data", "MODIS", "C61", "MCD64A1", "HDF"
         )
         self._modis_template_path = os.path.join(
             project_directory, "rasters", "mosaic_template.tif"
         )
-        self._record_start_year = 2000
+        self._record_start_year = self._product_config.record_start_year
 
     def __repr__(self):
         """Return representation string for BurnData object."""
@@ -676,8 +685,8 @@ class BurnData(LPDAAC):
                 for tile, point in points.items():
                     job = pool.submit(
                         earthaccess.search_data,
-                        short_name="MCD64A1",
-                        version="061",
+                        short_name=self._product_config.short_name,
+                        version=self._product_config.version,
                         temporal=(start_date, end_date),
                         point=point
                     )
@@ -688,8 +697,8 @@ class BurnData(LPDAAC):
         else:
             for tile, point in tqdm(points.items(), total=len(points)):
                 granule = earthaccess.search_data(
-                    short_name="MCD64A1",
-                    version="061",
+                    short_name=self._product_config.short_name,
+                    version=self._product_config.version,
                     temporal=(start_date, end_date),
                     point=point
                 )
@@ -699,8 +708,8 @@ class BurnData(LPDAAC):
 
     def _get_search_kwargs(self, tile, start_date, end_date):
         kwargs = dict(
-            short_name="MCD64A1",
-            version="061",
+            short_name=self._product_config.short_name,
+            version=self._product_config.version,
             temporal=(start_date, end_date),
             granule_name=f"*{tile}*"
         )
@@ -782,8 +791,17 @@ class BurnData(LPDAAC):
             try:
                 # Use a sample to get geography information and geometries
                 sample = files[0]
-                ds = gdal.Open(sample).GetSubDatasets()[0][0]
-                hdf = gdal.Open(ds)
+                gdal_ds = gdal.Open(sample)
+                subdatasets = gdal_ds.GetSubDatasets()
+                burn_sds = None
+                for sds_name, sds_desc in subdatasets:
+                    if "Burn Date" in sds_desc and "Uncertainty" not in sds_desc:
+                        burn_sds = sds_name
+                        break
+                if burn_sds is None:
+                    # Fallback to first subdataset
+                    burn_sds = subdatasets[0][0]
+                hdf = gdal.Open(burn_sds)
                 geom = hdf.GetGeoTransform()
                 proj = hdf.GetProjection()
                 data = hdf.GetRasterBand(1)
@@ -795,6 +813,24 @@ class BurnData(LPDAAC):
 
                 # Use one tif (one array) for spatial attributes
                 array = data.ReadAsArray()
+
+                # Optional QA filtering
+                try:
+                    qa_sds = None
+                    for sds_name, sds_desc in subdatasets:
+                        if sds_desc.strip().endswith('"QA"') or 'QA' == sds_desc.split('"')[-2] if '"' in sds_desc else False:
+                            qa_sds = sds_name
+                            break
+                    if qa_sds is not None:
+                        from firedpy.qa.viirs_qa import parse_burn_qa
+                        qa_ds = gdal.Open(qa_sds)
+                        qa_arr = qa_ds.ReadAsArray()
+                        qa_mask = parse_burn_qa(qa_arr, mode="standard")
+                        # Mask invalid pixels as unburned (0)
+                        array = np.where(qa_mask, array, 0)
+                except Exception:
+                    pass  # QA filtering is optional — don't break pipeline
+
                 ny, nx = array.shape
                 xs = np.arange(nx) * geom[1] + geom[0]
                 ys = np.arange(ny) * geom[5] + geom[3]
@@ -886,8 +922,17 @@ class BurnData(LPDAAC):
                     regex_group_dict = match.groupdict()
 
                     try:
-                        ds = gdal.Open(f).GetSubDatasets()[0][0]
-                        hdf = gdal.Open(ds)
+                        gdal_ds = gdal.Open(f)
+                        subdatasets = gdal_ds.GetSubDatasets()
+                        burn_sds = None
+                        for sds_name, sds_desc in subdatasets:
+                            if "Burn Date" in sds_desc and "Uncertainty" not in sds_desc:
+                                burn_sds = sds_name
+                                break
+                        if burn_sds is None:
+                            # Fallback to first subdataset
+                            burn_sds = subdatasets[0][0]
+                        hdf = gdal.Open(burn_sds)
                     except Exception as e:
                         logger.error(
                             f"Could not open {f} for building ncdf: {e}"
@@ -900,6 +945,24 @@ class BurnData(LPDAAC):
 
                     data = hdf.GetRasterBand(1)
                     array = data.ReadAsArray()
+
+                    # Optional QA filtering
+                    try:
+                        qa_sds = None
+                        for sds_name, sds_desc in subdatasets:
+                            if sds_desc.strip().endswith('"QA"') or 'QA' == sds_desc.split('"')[-2] if '"' in sds_desc else False:
+                                qa_sds = sds_name
+                                break
+                        if qa_sds is not None:
+                            from firedpy.qa.viirs_qa import parse_burn_qa
+                            qa_ds = gdal.Open(qa_sds)
+                            qa_arr = qa_ds.ReadAsArray()
+                            qa_mask = parse_burn_qa(qa_arr, mode="standard")
+                            # Mask invalid pixels as unburned (0)
+                            array = np.where(qa_mask, array, 0)
+                    except Exception:
+                        pass  # QA filtering is optional — don't break pipeline
+
                     nulls = np.where(array < 0)
 
                     year = int(regex_group_dict["year"])

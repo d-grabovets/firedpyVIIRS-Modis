@@ -129,3 +129,12 @@ tags
 # pixi environments
 .pixi
 *.egg-info
+
+# FIRMS cache (large files)
+output/firms_cache/
+*.gpkg
+*.geojson
+
+# Local data
+*.tif
+*.tiff

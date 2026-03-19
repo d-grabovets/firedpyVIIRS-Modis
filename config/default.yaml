@@ -1,0 +1,56 @@
+products:
+  modis:
+    short_name: MCD64A1
+    version: "061"
+    lp_daac_url: "https://e4ftl01.cr.usgs.gov/MOTA/MCD64A1.061/"
+    resolution_m: 463.31
+    qa_uncertainty_max: 4
+
+  viirs:
+    short_name: VNP64A1
+    version: "002"
+    lp_daac_url: "https://e4ftl01.cr.usgs.gov/VIIRS/VNP64A1.002/"
+    resolution_m: 375.0            # рідна роздільність VNP64A1 (НЕ 463!)
+    qa_mode: "standard"            # standard | permissive | strict | empirical
+    water_contam_threshold: 4      # bits 5-7: якщо >= threshold — маскувати
+    # BurnDate_QA bitmask (Collection 002):
+    #   bit 0 (0x01): land/water     — 1=land, 0=water
+    #   bit 1 (0x02): valid_burn     — 1=valid burn date, 0=invalid
+    #   bits 2-4:     reserved
+    #   bits 5-7 (0xE0): water_contamination — 0-7; 4=heavy contamination
+
+# Example region config (override for your area of interest):
+  tiles:
+    - h20v03
+    - h21v03
+    - h20v04
+    - h21v04
+    - h20v05
+    - h21v05
+
+worldcover:
+  exclude_classes: [50, 80]        # 50=built-up, 80=permanent water
+  source_crs: "EPSG:6933"
+  target_resolution_m: 500
+
+event_building:
+  spatial_param: 8                 # pixel search distance (firedpy default)
+  temporal_param: 5                # days search window (firedpy default)
+
+seam_merge:
+  enabled: true
+  tolerance_m: 700
+  min_overlap_days: 3
+
+stitched:
+  modis_years: [2000, 2011]
+  viirs_years: [2012, 2025]
+  overlap_boundary_start: "2011-12-01"
+  overlap_boundary_end: "2012-01-31"
+
+paths:
+  cache_dir: "./cache"
+  output_dir: "./output"
+
+earthdata:
+  token_env_var: "EARTHDATA_TOKEN"

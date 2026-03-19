@@ -280,6 +280,12 @@ def _prompts(ctx, _, interactive):
     is_eager=True,
     help=CLI_HELP["cleanup"]
 )
+@click.option(
+    "-pr", "--product",
+    type=click.Choice(["MCD64A1", "VNP64A1"], case_sensitive=False),
+    default="MCD64A1",
+    help="Burned area product: MCD64A1 (MODIS, 2000-present) or VNP64A1 (VIIRS, 2012-present)"
+)
 def cli(**params):
     """firedpy command line interface."""
     # Raise an error if parameters were supplied without the project directory
@@ -298,3 +304,6 @@ def cli(**params):
 
         # Run with user parameters
         _ = fired(**params)
+
+        # Log the product used
+        click.echo(f"Firedpy run completed using product: {params['product']}")
