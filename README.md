@@ -35,35 +35,22 @@ Compared to using raw VNP64A1 rasters directly, this pipeline adds:
 - **Land cover classification** — fire type identification (agricultural / wildfire / grassfire / peatfire)
 - **Perimeter refinement** — morphological smoothing for irregular fire boundaries
 
-### Validation Results (Ukraine, 2023-2024)
+### 11-Year Production Results (2014-2024)
 
-Validated against GABAM 30m (Global Annual Burned Area Map — Landsat-derived, 30m resolution):
-
-| Year | GABAM 30m | VIIRS Events | Detection Rate | Events |
-|------|-----------|-------------|----------------|--------|
-| 2023 | 503,408 ha | 290,217 ha | **58%** | 2,032 |
-| 2024 | 2,899,623 ha | 750,447 ha | **26%** | 3,536 |
-
-Detection rate depends on fire size distribution — VIIRS captures large fires (>25 ha) well but cannot detect small agricultural burns visible to 30m Landsat sensors. The 58% rate in 2023 (fewer but larger fires) vs 26% in 2024 (many small fires) demonstrates this resolution effect.
-
-### 11-Year Production Results (2014-2024, full processing extent)
-
-| Year | Raw Patches | Events | Total Area | High Conf | Medium | Low |
-|------|------------|--------|------------|-----------|--------|-----|
-| 2014 | 58,429 | 26,149 | 14,953,895 ha | 3,239 | 11,131 | 11,779 |
-| 2015 | 54,078 | 23,990 | 15,969,695 ha | 3,077 | 9,875 | 11,038 |
-| 2016 | 38,512 | 16,813 | 9,137,181 ha | 2,164 | 7,225 | 7,424 |
-| 2017 | 50,411 | 21,952 | 21,071,475 ha | 2,854 | 9,430 | 9,668 |
-| 2018 | 28,828 | 13,477 | 8,222,237 ha | 1,675 | 6,010 | 5,792 |
-| 2019 | 49,847 | 21,447 | 15,983,538 ha | 2,977 | 9,429 | 9,041 |
-| 2020 | 39,915 | 18,018 | 10,380,973 ha | 2,273 | 8,112 | 7,633 |
-| 2021 | 27,963 | 11,910 | 10,592,786 ha | 1,765 | 5,362 | 4,783 |
-| 2022 | 22,207 | 10,197 | 8,635,026 ha | 1,477 | 4,551 | 4,169 |
-| 2023 | 24,634 | 11,133 | 6,923,100 ha | 1,300 | 4,980 | 4,853 |
-| 2024 | 27,599 | 12,093 | 5,879,824 ha | 1,415 | 5,161 | 5,517 |
-| **Total** | **422,423** | **187,179** | **127,749,729 ha** | | | |
-
-Confidence distribution: ~13% High / ~43% Medium / ~44% Low — calibrated to be conservative. High confidence events have large area, multi-day duration, and multiple merged patches.
+| Year | Raw Patches | Events | Total Area |
+|------|------------|--------|------------|
+| 2014 | 58,429 | 26,149 | 14,953,895 ha |
+| 2015 | 54,078 | 23,990 | 15,969,695 ha |
+| 2016 | 38,512 | 16,813 | 9,137,181 ha |
+| 2017 | 50,411 | 21,952 | 21,071,475 ha |
+| 2018 | 28,828 | 13,477 | 8,222,237 ha |
+| 2019 | 49,847 | 21,447 | 15,983,538 ha |
+| 2020 | 39,915 | 18,018 | 10,380,973 ha |
+| 2021 | 27,963 | 11,910 | 10,592,786 ha |
+| 2022 | 22,207 | 10,197 | 8,635,026 ha |
+| 2023 | 24,634 | 11,133 | 6,923,100 ha |
+| 2024 | 27,599 | 12,093 | 5,879,824 ha |
+| **Total** | **422,423** | **187,179** | **127,749,729 ha** |
 
 ### The Pipeline
 
