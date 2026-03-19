@@ -1,4 +1,6 @@
-# License — VIIRS Extension (Non-Commercial, Research Only)
+# License — VIIRS Extension
+
+## AGPL-3.0 + Commercial License Exception
 
 **Effective date:** 2026-03-19
 
@@ -22,36 +24,54 @@ All files **not present** in the upstream earthlab/firedpy repository, including
 - `scripts/validate_cross_sensor.py` — Validation CLI
 - `web/` — Web dashboard
 - `config/` — Configuration files
-- `ARCHITECTURE_PLAN.md` — Technical documentation
 
-## Terms
+## Open-Source License: AGPL-3.0
 
-### Permitted Uses
+The VIIRS extension is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
 
-1. **Academic and scientific research** — universities, research institutes,
-   government research agencies, individual researchers
-2. **Education** — classroom use, student projects, thesis/dissertation work
-3. **Non-profit humanitarian work** — disaster response, fire monitoring for
-   emergency services (e.g., DSNS, CERT, civil protection agencies)
-4. **Personal non-commercial use** — hobbyists, open-source contributors
+This means you are free to:
+- **Use** — run the software for any purpose
+- **Study** — read and modify the source code
+- **Share** — redistribute copies
+- **Improve** — distribute modified versions
 
-### Prohibited Uses
+Under the following conditions:
+- **Source disclosure** — if you modify and deploy the software (including as a network service), you **must** make the complete source code of your version available under AGPL-3.0
+- **Same license** — derivative works must be licensed under AGPL-3.0
+- **Attribution** — you must retain copyright notices and attribution
 
-1. **Commercial use by for-profit companies** — including but not limited to:
-   selling derived products, integrating into commercial software or services,
-   using for commercial consulting or analytics
-2. **Use by insurance, real estate, or financial companies** for risk assessment
-   or pricing without a separate commercial license
-3. **Reselling or redistributing** as part of a paid product or service
+Full AGPL-3.0 text: https://www.gnu.org/licenses/agpl-3.0.en.html
 
-### Commercial Licensing
+## Commercial License Exception
 
-Companies and commercial organizations wishing to use the VIIRS extension
-must obtain a separate commercial license. Contact:
+Companies and commercial organizations that **do not wish to comply with AGPL-3.0 requirements** (i.e., do not want to open-source their own code) may obtain a separate **Commercial License**.
 
-- **Dmytro Grabovets** — [GitHub](https://github.com/d-grabovets)
+The Commercial License grants:
+- Right to use the VIIRS extension in proprietary/closed-source products
+- Right to integrate into commercial services without source disclosure
+- Right to create derivative works without AGPL-3.0 obligations
+- Priority support and consultation
 
-### Attribution
+### Who needs a Commercial License?
+
+- For-profit companies integrating this code into closed-source products or services
+- Insurance, real estate, or financial companies using it for risk assessment
+- SaaS platforms offering fire analytics as a paid service
+- Any use where AGPL-3.0 source disclosure is not acceptable
+
+### Who does NOT need a Commercial License?
+
+- Academic and scientific researchers
+- Universities and educational institutions
+- Non-profit humanitarian organizations (disaster response, civil protection)
+- Open-source projects that comply with AGPL-3.0
+- Personal non-commercial use
+
+### Contact for Commercial Licensing
+
+**Dmytro Grabovets** — [GitHub](https://github.com/d-grabovets)
+
+## Attribution
 
 All uses (commercial or non-commercial) must include attribution:
 

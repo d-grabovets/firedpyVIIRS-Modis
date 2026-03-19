@@ -9,7 +9,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![VIIRS VNP64A1](https://img.shields.io/badge/VIIRS-VNP64A1.002-orange.svg)](https://lpdaac.usgs.gov/products/vnp64a1v002/)
 [![NASA FIRMS](https://img.shields.io/badge/NASA-FIRMS%20API-red.svg)](https://firms.modaps.eosdis.nasa.gov/)
-[![License: Research](https://img.shields.io/badge/VIIRS_License-Research_Only-red.svg)](LICENSE_VIIRS.md)
+[![License: AGPL-3.0](https://img.shields.io/badge/VIIRS_License-AGPL--3.0-red.svg)](LICENSE_VIIRS.md)
 [![License: MIT](https://img.shields.io/badge/MODIS_License-MIT-yellow.svg)](LICENSE)
 
 *Fork of [earthlab/firedpy](https://github.com/earthlab/firedpy) — extended with VIIRS burned area processing, FIRMS cross-validation, land cover classification, and a real-time web dashboard for operational fire monitoring worldwide.*
@@ -225,9 +225,9 @@ This repository uses a **dual license** model:
 | Component | License | Commercial Use |
 |-----------|---------|----------------|
 | Original firedpy code (MODIS) | [MIT License](LICENSE) | Allowed |
-| VIIRS extension (new modules) | [Research Only](LICENSE_VIIRS.md) | **Not allowed** without separate agreement |
+| VIIRS extension (new modules) | [AGPL-3.0](LICENSE_VIIRS.md) | Must open-source your code, or buy a commercial license |
 
-The VIIRS extension is free for academic research, education, non-profit humanitarian work, and personal use. Companies and commercial organizations must obtain a separate commercial license — see [LICENSE_VIIRS.md](LICENSE_VIIRS.md) for details.
+The VIIRS extension is licensed under **AGPL-3.0** — free to use, but you must open-source any modifications and derivative works. Companies that want to keep their code proprietary can purchase a **Commercial License** — see [LICENSE_VIIRS.md](LICENSE_VIIRS.md) for details.
 
 ---
 
