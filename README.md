@@ -35,7 +35,7 @@ Compared to using raw VNP64A1 rasters directly, this pipeline adds:
 - **Land cover classification** — fire type identification (agricultural / wildfire / grassfire / peatfire)
 - **Perimeter refinement** — morphological smoothing for irregular fire boundaries
 
-### 11-Year Production Results (2014-2024)
+### 11-Year Production Results (Ukraine, 2014-2024)
 
 | Year | Raw Patches | Events | Total Area |
 |------|------------|--------|------------|
